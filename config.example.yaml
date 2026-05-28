@@ -1,0 +1,41 @@
+# ============================================
+# Cyber Girlfriend - Config Template
+# ============================================
+# Copy this file to config.yaml and customize.
+# ============================================
+
+channels:
+  telegram:
+    enabled: false
+  feishu:
+    enabled: false
+  weixin:
+    enabled: true
+    extra:
+      # Replace with your iLink Bot account_id
+      # Format: your_account_id@im.bot
+      account_id: your_bot_id@im.bot
+      channel_prompts:
+        # Example: map WeChat user to persona
+        # Replace the WeChat ID and point to your persona file
+        # user123@im.wechat: 'file:personas/kawaii.txt'
+
+personalities:
+  kawaii:
+    system_prompt: 'file:personas/kawaii.txt'
+  gentle:
+    system_prompt: 'file:personas/gentle.txt'
+  tsundere:
+    system_prompt: 'file:personas/tsundere.txt'
+
+memory:
+  # Enable smart memory
+  enabled: true
+  # Importance levels: critical, important, normal, minor
+  tiers:
+    - critical
+    - important
+    - normal
+    - minor
+  # Auto-expire normal/minor memories after N days
+  auto_expire_days: 30

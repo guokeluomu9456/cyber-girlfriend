@@ -1,0 +1,35 @@
+# Environment - NEVER commit these
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+token.txt
+credentials/
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+memories.db
+*.log
+logs/
