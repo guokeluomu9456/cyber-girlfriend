@@ -41,6 +41,7 @@ cyber-girlfriend/
 
 ### 前置要求
 
+- **Hermes Agent** — 本项目基于 Hermes Agent 框架运行，需先 [安装 Hermes Agent](https://github.com/nousresearch/hermes-agent)
 - Python 3.10+
 - 一个 iLink Bot 账号（用于微信接入，申请地址：https://ilink.bot）
 - 一个 LLM API Key（MiniMax / OpenAI / xAI 等）
