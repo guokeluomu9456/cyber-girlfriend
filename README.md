@@ -1,6 +1,6 @@
 # Cyber Girlfriend 🤖💕
 
-基于 Hermes Agent 的微信赛博女友框架。支持多人格切换、记忆机制、语音合成，让 AI 伴侣自然地融入微信对话。
+基于 Hermes Agent 的微信赛博女友框架。支持多人格切换、重要性分级记忆系统，让 AI 伴侣自然地融入微信对话。
 
 > **⚠️ 微信封号风险**：使用小号进行实验，官方账号不建议使用。
 > **⚠️ 隐私安全**：不要在代码仓库中提交任何 Token、API Key、个人信息。
@@ -11,9 +11,9 @@
 
 - **微信接入** — 通过 iLink Bot API 接入微信，零封号风险的小号实验方案
 - **人格系统** — 内置傲娇、温柔、病娇等多种人格模板，支持自定义
-- **记忆机制** — 重要性分级（critical/important/normal/minor）+ 自动过期，让对话更有连续性
-- **语音合成** — 支持 MiniMax、Edge TTS 等 TTS 提供商
+- **记忆机制** — 四级重要性分层（critical/important/normal/minor）+ 自动上限淘汰 + 时间衰减 TTL，让对话更有连续性
 - **零信任配置** — 所有 Token/Key 通过环境变量注入，代码仓库零敏感信息
+- **轻量独立** — 不依赖 Hermes 源码库，单独运行也可通过 Hermes Gateway 接入
 
 ---
 
@@ -25,9 +25,9 @@ cyber-girlfriend/
 ├── .gitignore
 ├── config.example.yaml    # 配置文件模板（请复制为 config.yaml）
 ├── requirements.txt
-├── main.py                # 🎯 独立启动入口
+├── main.py                # 独立启动入口
 ├── persona_loader.py      # 人格加载模块
-├── memory_store.py         # 分层记忆存储模块
+├── memory_store.py        # 分层记忆存储模块
 ├── personas/
 │   ├── kawaii.txt         # 傲娇女友人格
 │   ├── gentle.txt         # 温柔人格
@@ -181,12 +181,14 @@ personalities:
 
 ### 四级重要性分层
 
-| Tier | 说明 | TTL |
-|------|------|-----|
-| critical | 核心信息，永不过期 | 永不过期 |
-| important | 重要偏好设定 | 永不过期 |
-| normal | 普通对话记忆 | 30天（默认） |
-| minor | 不重要细节 | 7天（默认） |
+| Tier | 说明 | 上限 | TTL |
+|------|------|------|-----|
+| critical | 核心信息（人设、身份） | 20条 | 永不过期 |
+| important | 重要偏好（喜欢/怕/讨厌） | 50条 | 永不过期 |
+| normal | 普通对话记忆 | 100条 | 30天 |
+| minor | 不重要细节 | 200条 | 7天 |
+
+**淘汰策略**：每条 tier 设有硬性上限，新记忆存入时自动淘汰最旧的。normal/minor 有 TTL 过期机制。
 
 ### 在代码中使用
 
@@ -203,6 +205,9 @@ store.add("用户喜欢喝奶茶，少糖", tier="important", user_id="wechat_us
 context = memory.build_context(tier="important")
 # → "【记忆】
 #   - 💡 [05-28] 用户喜欢喝奶茶，少糖"
+
+# 清理过期记忆
+store.cleanup()
 ```
 
 ---
@@ -212,7 +217,7 @@ context = memory.build_context(tier="important")
 ### channels.weixin
 
 | 字段 | 说明 |
-|------|------|
+|------|-----|
 | `enabled` | 是否启用微信接入 |
 | `account_id` | iLink Bot 账号格式：`your_id@im.bot` |
 | `channel_prompts` | 微信用户 ID → persona 文件映射 |
@@ -237,7 +242,7 @@ context = memory.build_context(tier="important")
 2. 检查 `config.yaml` 中 `account_id` 格式是否正确
 3. 确认 `.env` 中 `ILINK_API_KEY` 和 `ILINK_BOT_ID` 正确
 
-###人格加载失败
+### 人格加载失败
 
 检查 `config.yaml` 中 `system_prompt` 路径是否正确，文件是否存在。
 

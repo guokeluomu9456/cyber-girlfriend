@@ -31,5 +31,6 @@ Thumbs.db
 
 # Project-specific
 memories.db
+memory.db
 *.log
 logs/
