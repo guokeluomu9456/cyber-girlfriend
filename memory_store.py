@@ -31,6 +31,14 @@ logger = logging.getLogger("memory_store")
 # 默认 tier 顺序（从高到低）
 DEFAULT_TIERS = ["critical", "important", "normal", "minor"]
 
+# 每个 tier 的上限（条数），超过时淘汰最旧的
+DEFAULT_TIER_CAPS = {
+    "critical": 20,   # 人设核心，永不过期但有数量上限
+    "important": 50,  # 用户偏好
+    "normal": 100,    # 一般信息
+    "minor": 200,     # 边缘记忆
+}
+
 # 每个 tier 的 TTL（天），-1 表示永不过期
 DEFAULT_TTL_DAYS = {
     "critical": -1,
@@ -77,6 +85,7 @@ class MemoryStore:
         self._ttl_days = dict(DEFAULT_TTL_DAYS)
         self._ttl_days["normal"] = auto_expire_days
         self._ttl_days["minor"] = min(auto_expire_days // 4, 7)
+        self._tier_caps = dict(DEFAULT_TIER_CAPS)
 
         if db_path is None:
             home = Path.home()
@@ -127,7 +136,41 @@ class MemoryStore:
             self._conn.commit()
             mid = cursor.lastrowid
             logger.debug("Added memory id=%s tier=%s user=%s", mid, tier, user_id)
+
+            # Enforce per-tier cap: delete oldest entries if over limit
+            self._enforce_tier_cap(cursor, user_id, tier)
+            self._conn.commit()
+
             return mid
+
+    def _enforce_tier_cap(self, cursor, user_id: str, tier: str) -> None:
+        """Delete oldest entries if this tier exceeds its cap for this user."""
+        cap = self._tier_caps.get(tier, 0)
+        if cap <= 0:
+            return
+
+        cursor.execute(
+            "SELECT COUNT(*) FROM memories WHERE user_id = ? AND tier = ?",
+            (user_id, tier),
+        )
+        count = cursor.fetchone()[0]
+
+        if count > cap:
+            # Delete oldest (lowest created_at) to bring count down to cap - 1
+            to_delete = count - cap + 1
+            cursor.execute(
+                """
+                DELETE FROM memories
+                WHERE id IN (
+                    SELECT id FROM memories
+                    WHERE user_id = ? AND tier = ?
+                    ORDER BY created_at ASC
+                    LIMIT ?
+                )
+                """,
+                (user_id, tier, to_delete),
+            )
+            logger.info("Pruned %s entries from tier=%s (over cap=%s)", to_delete, tier, cap)
 
     def get(
         self,
